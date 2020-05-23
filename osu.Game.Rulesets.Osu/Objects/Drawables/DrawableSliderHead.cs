@@ -2,9 +2,11 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Diagnostics;
 using osu.Framework.Allocation;
 using osu.Framework.Bindables;
 using osu.Game.Rulesets.Objects.Types;
+using osu.Game.Rulesets.Scoring;
 using osuTK;
 
 namespace osu.Game.Rulesets.Osu.Objects.Drawables
@@ -32,6 +34,28 @@ namespace osu.Game.Rulesets.Osu.Objects.Drawables
 
             positionBindable.BindValueChanged(_ => updatePosition());
             pathVersion.BindValueChanged(_ => updatePosition(), true);
+        }
+        protected override void CheckForResult(bool userTriggered, double timeOffset)
+        {
+            Debug.Assert(HitObject.HitWindows != null);
+
+            if (!userTriggered)
+            {
+                if (!HitObject.HitWindows.CanBeHit(timeOffset))
+                    ApplyResult(r => r.Type = HitResult.Miss);
+
+                return;
+            }
+
+            var result = HitObject.HitWindows.ResultFor(timeOffset);
+
+            if (result == HitResult.None || CheckHittable?.Invoke(this, Time.Current) == false)
+            {
+                Shake(Math.Abs(timeOffset) - HitObject.HitWindows.WindowFor(HitResult.Miss));
+                return;
+            }
+            
+            ApplyResult(r => r.Type = HitResult.Great);
         }
 
         protected override void Update()
