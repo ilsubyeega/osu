@@ -96,6 +96,9 @@ namespace osu.Game.Screens.Multi.Match.Components
 
         private void updateEnabledState()
         {
+            Enabled.Value = false;
+            return;
+            /*
             if (gameBeatmap.Value == null || SelectedItem.Value == null)
             {
                 Enabled.Value = false;
@@ -104,7 +107,7 @@ namespace osu.Game.Screens.Multi.Match.Components
 
             bool hasEnoughTime = DateTimeOffset.UtcNow.AddSeconds(30).AddMilliseconds(gameBeatmap.Value.Track.Length) < endDate.Value;
 
-            Enabled.Value = hasBeatmap && hasEnoughTime;
+            Enabled.Value = hasBeatmap && hasEnoughTime;*/
         }
     }
 }

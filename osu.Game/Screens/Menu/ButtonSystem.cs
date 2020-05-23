@@ -124,7 +124,7 @@ namespace osu.Game.Screens.Menu
         private void load(AudioManager audio, IdleTracker idleTracker, GameHost host)
         {
             buttonsPlay.Add(new Button(@"solo", @"button-solo-select", FontAwesome.Solid.User, new Color4(102, 68, 204, 255), () => OnSolo?.Invoke(), WEDGE_WIDTH, Key.P));
-            buttonsPlay.Add(new Button(@"multi", @"button-generic-select", FontAwesome.Solid.Users, new Color4(94, 63, 186, 255), onMulti, 0, Key.M));
+            /*buttonsPlay.Add(new Button(@"multi", @"button-generic-select", FontAwesome.Solid.Users, new Color4(94, 63, 186, 255), onMulti, 0, Key.M));*/
             buttonsPlay.Add(new Button(@"chart", @"button-generic-select", OsuIcon.Charts, new Color4(80, 53, 160, 255), () => OnChart?.Invoke()));
             buttonsPlay.ForEach(b => b.VisibleState = ButtonSystemState.Play);
 
