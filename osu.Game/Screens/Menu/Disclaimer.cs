@@ -90,14 +90,16 @@ namespace osu.Game.Screens.Menu
                 }
             };
 
-            textFlow.AddText("This project is an ongoing ", t => t.Font = t.Font.With(Typeface.Torus, 30, FontWeight.Light));
-            textFlow.AddText("work in progress", t => t.Font = t.Font.With(Typeface.Torus, 30, FontWeight.SemiBold));
+            textFlow.AddText("This is not the ", t => t.Font = t.Font.With(Typeface.Torus, 30, FontWeight.Light));
+            textFlow.AddText("official osu!lazer.", t => t.Font = t.Font.With(Typeface.Torus, 30, FontWeight.SemiBold));
 
             textFlow.NewParagraph();
-
+            textFlow.AddParagraph("You can receive an official client from ", t => t.Font = t.Font.With(Typeface.Torus, 20, FontWeight.SemiBold));
+            textFlow.AddLink("https://github.com/ppy/osu/releases", "https://github.com/ppy/osu/releases", t => t.Font = t.Font.With(Typeface.Torus, 20, FontWeight.SemiBold));
+            textFlow.NewParagraph();
             static void format(SpriteText t) => t.Font = OsuFont.GetFont(size: 15, weight: FontWeight.SemiBold);
 
-            textFlow.AddParagraph(getRandomTip(), t => t.Font = t.Font.With(Typeface.Torus, 20, FontWeight.SemiBold));
+            //textFlow.AddParagraph(getRandomTip(), t => t.Font = t.Font.With(Typeface.Torus, 20, FontWeight.SemiBold));
             textFlow.NewParagraph();
 
             textFlow.NewParagraph();
