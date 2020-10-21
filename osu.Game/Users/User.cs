@@ -111,9 +111,6 @@ namespace osu.Game.Users
         [JsonProperty(@"twitter")]
         public string Twitter;
 
-        [JsonProperty(@"lastfm")]
-        public string Lastfm;
-
         [JsonProperty(@"skype")]
         public string Skype;
 
@@ -173,8 +170,27 @@ namespace osu.Game.Users
             public int Available;
         }
 
+        private UserStatistics statistics;
+
         [JsonProperty(@"statistics")]
-        public UserStatistics Statistics;
+        public UserStatistics Statistics
+        {
+            get => statistics ??= new UserStatistics();
+            set
+            {
+                if (statistics != null)
+                    // we may already have rank history populated
+                    value.RankHistory = statistics.RankHistory;
+
+                statistics = value;
+            }
+        }
+
+        [JsonProperty(@"rankHistory")]
+        private RankHistoryData rankHistory
+        {
+            set => statistics.RankHistory = value;
+        }
 
         public class RankHistoryData
         {
@@ -183,12 +199,6 @@ namespace osu.Game.Users
 
             [JsonProperty(@"data")]
             public int[] Data;
-        }
-
-        [JsonProperty(@"rankHistory")]
-        private RankHistoryData rankHistory
-        {
-            set => Statistics.RankHistory = value;
         }
 
         [JsonProperty("badges")]

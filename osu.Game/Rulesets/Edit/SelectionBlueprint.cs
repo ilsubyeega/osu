@@ -89,9 +89,23 @@ namespace osu.Game.Rulesets.Edit
             }
         }
 
-        protected virtual void OnDeselected() => Hide();
+        protected virtual void OnDeselected()
+        {
+            // selection blueprints are AlwaysPresent while the related DrawableHitObject is visible
+            // set the body piece's alpha directly to avoid arbitrarily rendering frame buffers etc. of children.
+            foreach (var d in InternalChildren)
+                d.Hide();
 
-        protected virtual void OnSelected() => Show();
+            Hide();
+        }
+
+        protected virtual void OnSelected()
+        {
+            foreach (var d in InternalChildren)
+                d.Show();
+
+            Show();
+        }
 
         // When not selected, input is only required for the blueprint itself to receive IsHovering
         protected override bool ShouldBeConsideredForInput(Drawable child) => State == SelectionState.Selected;
@@ -109,11 +123,6 @@ namespace osu.Game.Rulesets.Edit
         public bool IsSelected => State == SelectionState.Selected;
 
         /// <summary>
-        /// Updates the <see cref="Objects.HitObject"/>, invoking <see cref="Objects.HitObject.ApplyDefaults"/> and re-processing the beatmap.
-        /// </summary>
-        protected void UpdateHitObject() => composer?.UpdateHitObject(HitObject);
-
-        /// <summary>
         /// The <see cref="MenuItem"/>s to be displayed in the context menu for this <see cref="OverlaySelectionBlueprint"/>.
         /// </summary>
         public virtual MenuItem[] ContextMenuItems => Array.Empty<MenuItem>();
@@ -121,7 +130,7 @@ namespace osu.Game.Rulesets.Edit
         /// <summary>
         /// The screen-space point that causes this <see cref="OverlaySelectionBlueprint"/> to be selected.
         /// </summary>
-        public virtual Vector2 SelectionPoint => ScreenSpaceDrawQuad.Centre;
+        public virtual Vector2 ScreenSpaceSelectionPoint => ScreenSpaceDrawQuad.Centre;
 
         /// <summary>
         /// The screen-space quad that outlines this <see cref="OverlaySelectionBlueprint"/> for selections.

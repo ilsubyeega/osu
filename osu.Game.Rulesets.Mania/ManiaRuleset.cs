@@ -30,24 +30,32 @@ using osu.Game.Rulesets.Mania.Skinning;
 using osu.Game.Rulesets.Scoring;
 using osu.Game.Skinning;
 using osu.Game.Scoring;
+using osu.Game.Screens.Ranking.Statistics;
 
 namespace osu.Game.Rulesets.Mania
 {
     public class ManiaRuleset : Ruleset, ILegacyRuleset
     {
+        /// <summary>
+        /// The maximum number of supported keys in a single stage.
+        /// </summary>
+        public const int MAX_STAGE_KEYS = 10;
+
         public override DrawableRuleset CreateDrawableRulesetWith(IBeatmap beatmap, IReadOnlyList<Mod> mods = null) => new DrawableManiaRuleset(this, beatmap, mods);
 
         public override ScoreProcessor CreateScoreProcessor() => new ManiaScoreProcessor();
 
+        public override HealthProcessor CreateHealthProcessor(double drainStartTime) => new DrainingHealthProcessor(drainStartTime, 0.2);
+
         public override IBeatmapConverter CreateBeatmapConverter(IBeatmap beatmap) => new ManiaBeatmapConverter(beatmap, this);
 
-        public override PerformanceCalculator CreatePerformanceCalculator(WorkingBeatmap beatmap, ScoreInfo score) => new ManiaPerformanceCalculator(this, beatmap, score);
+        public override PerformanceCalculator CreatePerformanceCalculator(DifficultyAttributes attributes, ScoreInfo score) => new ManiaPerformanceCalculator(this, attributes, score);
 
         public const string SHORT_NAME = "mania";
 
         public override HitObjectComposer CreateHitObjectComposer() => new ManiaHitObjectComposer(this);
 
-        public override ISkin CreateLegacySkinProvider(ISkinSource source) => new ManiaLegacySkinTransformer(source);
+        public override ISkin CreateLegacySkinProvider(ISkinSource source, IBeatmap beatmap) => new ManiaLegacySkinTransformer(source, beatmap);
 
         public override IEnumerable<Mod> ConvertFromLegacyMods(LegacyMods mods)
         {
@@ -116,6 +124,9 @@ namespace osu.Game.Rulesets.Mania
 
             if (mods.HasFlag(LegacyMods.Random))
                 yield return new ManiaModRandom();
+
+            if (mods.HasFlag(LegacyMods.Mirror))
+                yield return new ManiaModMirror();
         }
 
         public override LegacyMods ConvertToLegacyMods(Mod[] mods)
@@ -165,6 +176,10 @@ namespace osu.Game.Rulesets.Mania
                     case ManiaModFadeIn _:
                         value |= LegacyMods.FadeIn;
                         break;
+
+                    case ManiaModMirror _:
+                        value |= LegacyMods.Mirror;
+                        break;
                 }
             }
 
@@ -202,6 +217,7 @@ namespace osu.Game.Rulesets.Mania
                             new ManiaModKey7(),
                             new ManiaModKey8(),
                             new ManiaModKey9(),
+                            new ManiaModKey10(),
                             new ManiaModKey1(),
                             new ManiaModKey2(),
                             new ManiaModKey3()),
@@ -209,6 +225,7 @@ namespace osu.Game.Rulesets.Mania
                         new ManiaModDualStages(),
                         new ManiaModMirror(),
                         new ManiaModDifficultyAdjust(),
+                        new ManiaModInvert(),
                     };
 
                 case ModType.Automation:
@@ -250,9 +267,9 @@ namespace osu.Game.Rulesets.Mania
         {
             get
             {
-                for (int i = 1; i <= 9; i++)
+                for (int i = 1; i <= MAX_STAGE_KEYS; i++)
                     yield return (int)PlayfieldType.Single + i;
-                for (int i = 2; i <= 18; i += 2)
+                for (int i = 2; i <= MAX_STAGE_KEYS * 2; i += 2)
                     yield return (int)PlayfieldType.Dual + i;
             }
         }
@@ -262,73 +279,10 @@ namespace osu.Game.Rulesets.Mania
             switch (getPlayfieldType(variant))
             {
                 case PlayfieldType.Single:
-                    return new VariantMappingGenerator
-                    {
-                        LeftKeys = new[]
-                        {
-                            InputKey.A,
-                            InputKey.S,
-                            InputKey.D,
-                            InputKey.F
-                        },
-                        RightKeys = new[]
-                        {
-                            InputKey.J,
-                            InputKey.K,
-                            InputKey.L,
-                            InputKey.Semicolon
-                        },
-                        SpecialKey = InputKey.Space,
-                        SpecialAction = ManiaAction.Special1,
-                        NormalActionStart = ManiaAction.Key1,
-                    }.GenerateKeyBindingsFor(variant, out _);
+                    return new SingleStageVariantGenerator(variant).GenerateMappings();
 
                 case PlayfieldType.Dual:
-                    int keys = getDualStageKeyCount(variant);
-
-                    var stage1Bindings = new VariantMappingGenerator
-                    {
-                        LeftKeys = new[]
-                        {
-                            InputKey.Q,
-                            InputKey.W,
-                            InputKey.E,
-                            InputKey.R,
-                        },
-                        RightKeys = new[]
-                        {
-                            InputKey.X,
-                            InputKey.C,
-                            InputKey.V,
-                            InputKey.B
-                        },
-                        SpecialKey = InputKey.S,
-                        SpecialAction = ManiaAction.Special1,
-                        NormalActionStart = ManiaAction.Key1
-                    }.GenerateKeyBindingsFor(keys, out var nextNormal);
-
-                    var stage2Bindings = new VariantMappingGenerator
-                    {
-                        LeftKeys = new[]
-                        {
-                            InputKey.Number7,
-                            InputKey.Number8,
-                            InputKey.Number9,
-                            InputKey.Number0
-                        },
-                        RightKeys = new[]
-                        {
-                            InputKey.K,
-                            InputKey.L,
-                            InputKey.Semicolon,
-                            InputKey.Quote
-                        },
-                        SpecialKey = InputKey.I,
-                        SpecialAction = ManiaAction.Special2,
-                        NormalActionStart = nextNormal
-                    }.GenerateKeyBindingsFor(keys, out _);
-
-                    return stage1Bindings.Concat(stage2Bindings);
+                    return new DualStageVariantGenerator(getDualStageKeyCount(variant)).GenerateMappings();
             }
 
             return Array.Empty<KeyBinding>();
@@ -365,58 +319,55 @@ namespace osu.Game.Rulesets.Mania
             return (PlayfieldType)Enum.GetValues(typeof(PlayfieldType)).Cast<int>().OrderByDescending(i => i).First(v => variant >= v);
         }
 
-        private class VariantMappingGenerator
+        protected override IEnumerable<HitResult> GetValidHitResults()
         {
-            /// <summary>
-            /// All the <see cref="InputKey"/>s available to the left hand.
-            /// </summary>
-            public InputKey[] LeftKeys;
-
-            /// <summary>
-            /// All the <see cref="InputKey"/>s available to the right hand.
-            /// </summary>
-            public InputKey[] RightKeys;
-
-            /// <summary>
-            /// The <see cref="InputKey"/> for the special key.
-            /// </summary>
-            public InputKey SpecialKey;
-
-            /// <summary>
-            /// The <see cref="ManiaAction"/> at which the normal columns should begin.
-            /// </summary>
-            public ManiaAction NormalActionStart;
-
-            /// <summary>
-            /// The <see cref="ManiaAction"/> for the special column.
-            /// </summary>
-            public ManiaAction SpecialAction;
-
-            /// <summary>
-            /// Generates a list of <see cref="KeyBinding"/>s for a specific number of columns.
-            /// </summary>
-            /// <param name="columns">The number of columns that need to be bound.</param>
-            /// <param name="nextNormalAction">The next <see cref="ManiaAction"/> to use for normal columns.</param>
-            /// <returns>The keybindings.</returns>
-            public IEnumerable<KeyBinding> GenerateKeyBindingsFor(int columns, out ManiaAction nextNormalAction)
+            return new[]
             {
-                ManiaAction currentNormalAction = NormalActionStart;
+                HitResult.Perfect,
+                HitResult.Great,
+                HitResult.Good,
+                HitResult.Ok,
+                HitResult.Meh,
 
-                var bindings = new List<KeyBinding>();
-
-                for (int i = LeftKeys.Length - columns / 2; i < LeftKeys.Length; i++)
-                    bindings.Add(new KeyBinding(LeftKeys[i], currentNormalAction++));
-
-                if (columns % 2 == 1)
-                    bindings.Add(new KeyBinding(SpecialKey, SpecialAction));
-
-                for (int i = 0; i < columns / 2; i++)
-                    bindings.Add(new KeyBinding(RightKeys[i], currentNormalAction++));
-
-                nextNormalAction = currentNormalAction;
-                return bindings;
-            }
+                HitResult.LargeTickHit,
+            };
         }
+
+        public override string GetDisplayNameForHitResult(HitResult result)
+        {
+            switch (result)
+            {
+                case HitResult.LargeTickHit:
+                    return "hold tick";
+            }
+
+            return base.GetDisplayNameForHitResult(result);
+        }
+
+        public override StatisticRow[] CreateStatisticsForScore(ScoreInfo score, IBeatmap playableBeatmap) => new[]
+        {
+            new StatisticRow
+            {
+                Columns = new[]
+                {
+                    new StatisticItem("Timing Distribution", new HitEventTimingDistributionGraph(score.HitEvents)
+                    {
+                        RelativeSizeAxes = Axes.X,
+                        Height = 250
+                    }),
+                }
+            },
+            new StatisticRow
+            {
+                Columns = new[]
+                {
+                    new StatisticItem(string.Empty, new SimpleStatisticTable(3, new SimpleStatisticItem[]
+                    {
+                        new UnstableRate(score.HitEvents)
+                    }))
+                }
+            }
+        };
     }
 
     public enum PlayfieldType
