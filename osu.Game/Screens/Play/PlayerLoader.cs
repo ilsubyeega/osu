@@ -2,6 +2,7 @@
 // See the LICENCE file in the repository root for full licence text.
 
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -55,6 +56,8 @@ namespace osu.Game.Screens.Play
 
         private bool backgroundBrightnessReduction;
 
+        private readonly BindableDouble volumeAdjustment = new BindableDouble(1);
+
         protected bool BackgroundBrightnessReduction
         {
             set
@@ -69,8 +72,9 @@ namespace osu.Game.Screens.Play
         }
 
         private bool readyForPush =>
+            !playerConsumed
             // don't push unless the player is completely loaded
-            player?.LoadState == LoadState.Ready
+            && player?.LoadState == LoadState.Ready
             // don't push if the user is hovering one of the panes, unless they are idle.
             && (IsHovered || idleTracker.IsIdle.Value)
             // don't push if the user is dragging a slider or otherwise.
@@ -81,6 +85,11 @@ namespace osu.Game.Screens.Play
         private readonly Func<Player> createPlayer;
 
         private Player player;
+
+        /// <summary>
+        /// Whether the curent player instance has been consumed via <see cref="consumePlayer"/>.
+        /// </summary>
+        private bool playerConsumed;
 
         private LogoTrackingContainer content;
 
@@ -169,6 +178,7 @@ namespace osu.Game.Screens.Play
 
             if (epilepsyWarning != null)
                 epilepsyWarning.DimmableBackground = Background;
+            Beatmap.Value.Track.AddAdjustment(AdjustableProperty.Volume, volumeAdjustment);
 
             content.ScaleTo(0.7f);
             Background?.FadeColour(Color4.White, 800, Easing.OutQuint);
@@ -176,7 +186,10 @@ namespace osu.Game.Screens.Play
             contentIn();
 
             MetadataInfo.Delay(750).FadeIn(500);
-            this.Delay(1800).Schedule(pushWhenLoaded);
+
+            // after an initial delay, start the debounced load check.
+            // this will continue to execute even after resuming back on restart.
+            Scheduler.Add(new ScheduledDelegate(pushWhenLoaded, Clock.CurrentTime + 1800, 0));
 
             showMuteWarningIfNeeded();
         }
@@ -185,18 +198,24 @@ namespace osu.Game.Screens.Play
         {
             base.OnResuming(last);
 
-            contentIn();
+            // prepare for a retry.
+            player = null;
+            playerConsumed = false;
+            cancelLoad();
 
-            this.Delay(400).Schedule(pushWhenLoaded);
+            contentIn();
         }
 
         public override void OnSuspending(IScreen next)
         {
             base.OnSuspending(next);
 
-            cancelLoad();
-
             BackgroundBrightnessReduction = false;
+
+            // we're moving to player, so a period of silence is upcoming.
+            // stop the track before removing adjustment to avoid a volume spike.
+            Beatmap.Value.Track.Stop();
+            Beatmap.Value.Track.RemoveAdjustment(AdjustableProperty.Volume, volumeAdjustment);
         }
 
         public override bool OnExiting(IScreen next)
@@ -208,6 +227,7 @@ namespace osu.Game.Screens.Play
 
             Background.EnableUserDim.Value = false;
             BackgroundBrightnessReduction = false;
+            Beatmap.Value.Track.RemoveAdjustment(AdjustableProperty.Volume, volumeAdjustment);
 
             return base.OnExiting(next);
         }
@@ -265,6 +285,14 @@ namespace osu.Game.Screens.Play
             }
         }
 
+        private Player consumePlayer()
+        {
+            Debug.Assert(!playerConsumed);
+
+            playerConsumed = true;
+            return player;
+        }
+
         private void prepareNewPlayer()
         {
             if (!this.IsCurrentScreen())
@@ -306,66 +334,62 @@ namespace osu.Game.Screens.Play
         {
             if (!this.IsCurrentScreen()) return;
 
-            try
+            if (!readyForPush)
             {
-                if (!readyForPush)
+                // as the pushDebounce below has a delay, we need to keep checking and cancel a future debounce
+                // if we become unready for push during the delay.
+                cancelLoad();
+                return;
+            }
+
+            // if a push has already been scheduled, no further action is required.
+            // this value is reset via cancelLoad() to allow a second usage of the same PlayerLoader screen.
+            if (scheduledPushPlayer != null)
+                return;
+
+            scheduledPushPlayer = Scheduler.AddDelayed(() =>
+            {
+                // ensure that once we have reached this "point of no return", readyForPush will be false for all future checks (until a new player instance is prepared).
+                var consumedPlayer = consumePlayer();
+
+                contentOut();
+
+                TransformSequence<PlayerLoader> pushSequence = this.Delay(250);
+
+                // only show if the warning was created (i.e. the beatmap needs it)
+                // and this is not a restart of the map (the warning expires after first load).
+                if (epilepsyWarning?.IsAlive == true)
                 {
-                    // as the pushDebounce below has a delay, we need to keep checking and cancel a future debounce
-                    // if we become unready for push during the delay.
-                    cancelLoad();
-                    return;
+                    const double epilepsy_display_length = 3000;
+
+                    pushSequence
+                        .Schedule(() => epilepsyWarning.State.Value = Visibility.Visible)
+                        .TransformBindableTo(volumeAdjustment, 0.25, EpilepsyWarning.FADE_DURATION, Easing.OutQuint)
+                        .Delay(epilepsy_display_length)
+                        .Schedule(() =>
+                        {
+                            epilepsyWarning.Hide();
+                            epilepsyWarning.Expire();
+                        })
+                        .Delay(EpilepsyWarning.FADE_DURATION);
                 }
 
-                if (scheduledPushPlayer != null)
-                    return;
-
-                scheduledPushPlayer = Scheduler.AddDelayed(() =>
+                pushSequence.Schedule(() =>
                 {
-                    contentOut();
+                    if (!this.IsCurrentScreen()) return;
 
-                    TransformSequence<PlayerLoader> pushSequence = this.Delay(250);
+                    LoadTask = null;
 
-                    // only show if the warning was created (i.e. the beatmap needs it)
-                    // and this is not a restart of the map (the warning expires after first load).
-                    if (epilepsyWarning?.IsAlive == true)
-                    {
-                        const double epilepsy_display_length = 3000;
+                    // By default, we want to load the player and never be returned to.
+                    // Note that this may change if the player we load requested a re-run.
+                    ValidForResume = false;
 
-                        pushSequence.Schedule(() =>
-                        {
-                            epilepsyWarning.State.Value = Visibility.Visible;
-
-                            this.Delay(epilepsy_display_length).Schedule(() =>
-                            {
-                                epilepsyWarning.Hide();
-                                epilepsyWarning.Expire();
-                            });
-                        });
-
-                        pushSequence.Delay(epilepsy_display_length);
-                    }
-
-                    pushSequence.Schedule(() =>
-                    {
-                        if (!this.IsCurrentScreen()) return;
-
-                        LoadTask = null;
-
-                        // By default, we want to load the player and never be returned to.
-                        // Note that this may change if the player we load requested a re-run.
-                        ValidForResume = false;
-
-                        if (player.LoadedBeatmapSuccessfully)
-                            this.Push(player);
-                        else
-                            this.Exit();
-                    });
-                }, 500);
-            }
-            finally
-            {
-                Schedule(pushWhenLoaded);
-            }
+                    if (consumedPlayer.LoadedBeatmapSuccessfully)
+                        this.Push(consumedPlayer);
+                    else
+                        this.Exit();
+                });
+            }, 500);
         }
 
         private void cancelLoad()
@@ -383,7 +407,7 @@ namespace osu.Game.Screens.Play
             if (isDisposing)
             {
                 // if the player never got pushed, we should explicitly dispose it.
-                DisposalTask = LoadTask?.ContinueWith(_ => player.Dispose());
+                DisposalTask = LoadTask?.ContinueWith(_ => player?.Dispose());
             }
         }
 
