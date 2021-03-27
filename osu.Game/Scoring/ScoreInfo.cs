@@ -45,7 +45,7 @@ namespace osu.Game.Scoring
         [JsonIgnore]
         public int Combo { get; set; } // Todo: Shouldn't exist in here
 
-        [JsonIgnore]
+        [JsonProperty("ruleset_id")]
         public int RulesetID { get; set; }
 
         [JsonProperty("passed")]
