@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using osu.Framework.Allocation;
+using osu.Framework.Bindables;
 using osu.Framework.Graphics;
 using osu.Framework.Graphics.Containers;
 using osu.Framework.Graphics.Primitives;
@@ -34,8 +35,12 @@ namespace osu.Game.Rulesets.Osu.UI
         private readonly ProxyContainer approachCircles;
         private readonly ProxyContainer spinnerProxies;
         private readonly JudgementContainer<DrawableOsuJudgement> judgementLayer;
+        private readonly HitErrorDisplayPool hitErrorDisplayPool;
 
         private readonly JudgementPooler<DrawableOsuJudgement> judgementPooler;
+
+        private readonly Bindable<bool> hitErrorHideJudgements = new Bindable<bool>();
+        private readonly Bindable<bool> hitErrorEnabled = new Bindable<bool>();
 
         // For osu! gameplay, everything is always on screen.
         // Skipping masking calculations improves performance in intense beatmaps (ie. https://osu.ppy.sh/beatmapsets/150945#osu/372245)
@@ -71,6 +76,7 @@ namespace osu.Game.Rulesets.Osu.UI
                 HitObjectContainer,
                 judgementAboveHitObjectLayer = new Container { RelativeSizeAxes = Axes.Both },
                 approachCircles = new ProxyContainer { RelativeSizeAxes = Axes.Both },
+                hitErrorDisplayPool = new HitErrorDisplayPool { RelativeSizeAxes = Axes.Both },
             };
 
             HitPolicy = new StartTimeOrderedHitPolicy();
@@ -135,6 +141,8 @@ namespace osu.Game.Rulesets.Osu.UI
         private void load(OsuRulesetConfigManager? config, IBeatmap? beatmap)
         {
             config?.BindWith(OsuRulesetSetting.PlayfieldBorderStyle, playfieldBorder.PlayfieldBorderStyle);
+            config?.BindWith(OsuRulesetSetting.HitErrorHideJudgements, hitErrorHideJudgements);
+            config?.BindWith(OsuRulesetSetting.HitErrorDisplayEnabled, hitErrorEnabled);
 
             var osuBeatmap = (OsuBeatmap?)beatmap;
 
@@ -191,7 +199,14 @@ namespace osu.Game.Rulesets.Osu.UI
             // Hitobjects that block future hits should miss previous hitobjects if they're hit out-of-order.
             hitPolicy.HandleHit(judgedObject);
 
-            if (!judgedObject.DisplayResult || !DisplayJudgements.Value)
+            // Show hit error display for hits
+            if (result.IsHit)
+                hitErrorDisplayPool.ShowResult(judgedObject, result);
+
+            // Hide original judgements if hit error display is enabled and configured to hide them
+            bool shouldHideJudgement = hitErrorEnabled.Value && hitErrorHideJudgements.Value && result.IsHit;
+
+            if (!judgedObject.DisplayResult || !DisplayJudgements.Value || shouldHideJudgement)
                 return;
 
             var explosion = judgementPooler.Get(result.Type, doj => doj.Apply(result, judgedObject));

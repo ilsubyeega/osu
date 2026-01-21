@@ -114,6 +114,81 @@ namespace osu.Game.Localisation
         /// </summary>
         public static LocalisableString TouchOverlay => new TranslatableString(getKey(@"touch_overlay"), @"Touch overlay");
 
+        /// <summary>
+        /// "Show hit error display"
+        /// </summary>
+        public static LocalisableString HitErrorDisplayEnabled => new TranslatableString(getKey(@"hit_error_display_enabled"), @"Show hit error display (experimental)");
+
+        /// <summary>
+        /// "Hit error style"
+        /// </summary>
+        public static LocalisableString HitErrorDisplayStyle => new TranslatableString(getKey(@"hit_error_display_style"), @"Hit error style");
+
+        /// <summary>
+        /// "Hit error colour scheme"
+        /// </summary>
+        public static LocalisableString HitErrorColorScheme => new TranslatableString(getKey(@"hit_error_color_scheme"), @"Hit error colour scheme");
+
+        /// <summary>
+        /// "Show perfect hits"
+        /// </summary>
+        public static LocalisableString HitErrorShowPerfect => new TranslatableString(getKey(@"hit_error_show_perfect"), @"Show perfect hits");
+
+        /// <summary>
+        /// "Scale with circle size"
+        /// </summary>
+        public static LocalisableString HitErrorScaleWithCS => new TranslatableString(getKey(@"hit_error_scale_with_cs"), @"Scale with circle size");
+
+        /// <summary>
+        /// "Instant show (no fade-in)"
+        /// </summary>
+        public static LocalisableString HitErrorInstantShow => new TranslatableString(getKey(@"hit_error_instant_show"), @"Instant show (no fade-in)");
+
+        /// <summary>
+        /// "Disappear delay"
+        /// </summary>
+        public static LocalisableString HitErrorDisappearDelay => new TranslatableString(getKey(@"hit_error_disappear_delay"), @"Disappear delay");
+
+        /// <summary>
+        /// "Hide original judgements"
+        /// </summary>
+        public static LocalisableString HitErrorHideJudgements => new TranslatableString(getKey(@"hit_error_hide_judgements"), @"Hide original judgements");
+
+        /// <summary>
+        /// "Milliseconds (+12ms)"
+        /// </summary>
+        public static LocalisableString HitErrorStyleMilliseconds => new TranslatableString(getKey(@"hit_error_style_milliseconds"), @"Milliseconds (+12ms)");
+
+        /// <summary>
+        /// "Numeric (+12)"
+        /// </summary>
+        public static LocalisableString HitErrorStyleNumeric => new TranslatableString(getKey(@"hit_error_style_numeric"), @"Numeric (+12)");
+
+        /// <summary>
+        /// "Beat fractions (+1/64)"
+        /// </summary>
+        public static LocalisableString HitErrorStyleBeatFraction => new TranslatableString(getKey(@"hit_error_style_beat_fraction"), @"Beat fractions (+1/64)");
+
+        /// <summary>
+        /// "Text labels (EARLY/LATE)"
+        /// </summary>
+        public static LocalisableString HitErrorStyleTextLabel => new TranslatableString(getKey(@"hit_error_style_text_label"), @"Text labels (EARLY/LATE)");
+
+        /// <summary>
+        /// "Standard (blue/green/yellow)"
+        /// </summary>
+        public static LocalisableString HitErrorColorStandard => new TranslatableString(getKey(@"hit_error_color_standard"), @"Standard (blue/green/yellow)");
+
+        /// <summary>
+        /// "Perfect to gray"
+        /// </summary>
+        public static LocalisableString HitErrorColorPerfectGray => new TranslatableString(getKey(@"hit_error_color_perfect_gray"), @"Perfect to gray");
+
+        /// <summary>
+        /// "Fast/slow (red/blue)"
+        /// </summary>
+        public static LocalisableString HitErrorColorFastSlow => new TranslatableString(getKey(@"hit_error_color_fast_slow"), @"Fast/slow (red/blue)");
+
         private static string getKey(string key) => $@"{prefix}:{key}";
     }
 }

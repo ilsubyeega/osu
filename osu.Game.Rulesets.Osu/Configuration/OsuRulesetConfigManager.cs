@@ -28,6 +28,16 @@ namespace osu.Game.Rulesets.Osu.Configuration
             SetDefault(OsuRulesetSetting.ReplayCursorPathEnabled, false);
             SetDefault(OsuRulesetSetting.ReplayCursorHideEnabled, false);
             SetDefault(OsuRulesetSetting.ReplayAnalysisDisplayLength, 800);
+
+            // Hit error display
+            SetDefault(OsuRulesetSetting.HitErrorDisplayEnabled, false);
+            SetDefault(OsuRulesetSetting.HitErrorDisplayStyle, HitErrorDisplayStyle.Milliseconds);
+            SetDefault(OsuRulesetSetting.HitErrorColorScheme, HitErrorColorScheme.Standard);
+            SetDefault(OsuRulesetSetting.HitErrorShowPerfect, true);
+            SetDefault(OsuRulesetSetting.HitErrorScaleWithCS, true);
+            SetDefault(OsuRulesetSetting.HitErrorInstantShow, false);
+            SetDefault(OsuRulesetSetting.HitErrorDisappearDelay, 500.0, 10.0, 2000.0, 1.0);
+            SetDefault(OsuRulesetSetting.HitErrorHideJudgements, false);
         }
     }
 
@@ -45,5 +55,15 @@ namespace osu.Game.Rulesets.Osu.Configuration
         ReplayCursorPathEnabled,
         ReplayCursorHideEnabled,
         ReplayAnalysisDisplayLength,
+
+        // Hit error display
+        HitErrorDisplayEnabled,
+        HitErrorDisplayStyle,
+        HitErrorColorScheme,
+        HitErrorShowPerfect,
+        HitErrorScaleWithCS,
+        HitErrorInstantShow,
+        HitErrorDisappearDelay,
+        HitErrorHideJudgements,
     }
 }

@@ -25,6 +25,51 @@ namespace osu.Game.Rulesets.Osu.UI
         {
             var config = (OsuRulesetConfigManager)Config;
 
+            var hitErrorEnabled = config.GetBindable<bool>(OsuRulesetSetting.HitErrorDisplayEnabled);
+
+            var hitErrorStyleDropdown = new SettingsEnumDropdown<HitErrorDisplayStyle>
+            {
+                LabelText = RulesetSettingsStrings.HitErrorDisplayStyle,
+                Current = config.GetBindable<HitErrorDisplayStyle>(OsuRulesetSetting.HitErrorDisplayStyle),
+            };
+
+            var hitErrorColorDropdown = new SettingsEnumDropdown<HitErrorColorScheme>
+            {
+                LabelText = RulesetSettingsStrings.HitErrorColorScheme,
+                Current = config.GetBindable<HitErrorColorScheme>(OsuRulesetSetting.HitErrorColorScheme),
+            };
+
+            var hitErrorShowPerfect = new SettingsCheckbox
+            {
+                LabelText = RulesetSettingsStrings.HitErrorShowPerfect,
+                Current = config.GetBindable<bool>(OsuRulesetSetting.HitErrorShowPerfect),
+            };
+
+            var hitErrorScaleWithCS = new SettingsCheckbox
+            {
+                LabelText = RulesetSettingsStrings.HitErrorScaleWithCS,
+                Current = config.GetBindable<bool>(OsuRulesetSetting.HitErrorScaleWithCS),
+            };
+
+            var hitErrorInstantShow = new SettingsCheckbox
+            {
+                LabelText = RulesetSettingsStrings.HitErrorInstantShow,
+                Current = config.GetBindable<bool>(OsuRulesetSetting.HitErrorInstantShow),
+            };
+
+            var hitErrorDisappearDelay = new SettingsSlider<double>
+            {
+                LabelText = RulesetSettingsStrings.HitErrorDisappearDelay,
+                Current = config.GetBindable<double>(OsuRulesetSetting.HitErrorDisappearDelay),
+                KeyboardStep = 50,
+            };
+
+            var hitErrorHideJudgements = new SettingsCheckbox
+            {
+                LabelText = RulesetSettingsStrings.HitErrorHideJudgements,
+                Current = config.GetBindable<bool>(OsuRulesetSetting.HitErrorHideJudgements),
+            };
+
             Children = new Drawable[]
             {
                 new SettingsCheckbox
@@ -53,7 +98,32 @@ namespace osu.Game.Rulesets.Osu.UI
                     LabelText = RulesetSettingsStrings.PlayfieldBorderStyle,
                     Current = config.GetBindable<PlayfieldBorderStyle>(OsuRulesetSetting.PlayfieldBorderStyle),
                 },
+                new SettingsCheckbox
+                {
+                    LabelText = RulesetSettingsStrings.HitErrorDisplayEnabled,
+                    Current = hitErrorEnabled,
+                },
+                hitErrorStyleDropdown,
+                hitErrorColorDropdown,
+                hitErrorShowPerfect,
+                hitErrorScaleWithCS,
+                hitErrorInstantShow,
+                hitErrorDisappearDelay,
+                hitErrorHideJudgements,
             };
+
+            // Update visibility of hit error settings based on enabled state
+            hitErrorEnabled.BindValueChanged(e =>
+            {
+                bool enabled = e.NewValue;
+                hitErrorStyleDropdown.Alpha = enabled ? 1 : 0.5f;
+                hitErrorColorDropdown.Alpha = enabled ? 1 : 0.5f;
+                hitErrorShowPerfect.Alpha = enabled ? 1 : 0.5f;
+                hitErrorScaleWithCS.Alpha = enabled ? 1 : 0.5f;
+                hitErrorInstantShow.Alpha = enabled ? 1 : 0.5f;
+                hitErrorDisappearDelay.Alpha = enabled ? 1 : 0.5f;
+                hitErrorHideJudgements.Alpha = enabled ? 1 : 0.5f;
+            }, true);
         }
     }
 }
